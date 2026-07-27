@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paper-search"
-version = "0.1.0"
+version = "0.2.0"
 description = "General-purpose scholarly search and citation-audit toolkit using OpenAlex as the primary structured index"
 readme = "README.md"
 requires-python = ">=3.10"
