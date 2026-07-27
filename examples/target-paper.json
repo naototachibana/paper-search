@@ -1,0 +1,18 @@
+{
+  "title": "Generating QM1B with PySCF IPU",
+  "authors": ["Mathiasen, A.", "Helal, H.", "Klaser, K."],
+  "year": 2023,
+  "identifiers": {
+    "dois": [
+      "10.48550/arXiv.2311.01135",
+      "10.5555/3666122.3668524",
+      "10.52202/075280-2402"
+    ],
+    "arxiv": ["2311.01135"],
+    "openreview": ["9Z1cmO7S7o"],
+    "urls": [
+      "https://openreview.net/forum?id=9Z1cmO7S7o",
+      "https://arxiv.org/abs/2311.01135"
+    ]
+  }
+}
