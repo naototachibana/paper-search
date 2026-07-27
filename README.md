@@ -1,52 +1,97 @@
 # paper-search
 
-A general-purpose scholarly search and citation-audit skill. OpenAlex is the primary structured index, while publisher metadata and complementary scholarly sources are used for identity resolution, coverage checks, and evidence-backed citation audits.
+A general-purpose scholarly search and citation-audit skill. OpenAlex is the primary structured index, while other sources are accessed only through methods they officially support or do not prohibit.
 
-## Why this repository exists
+## Design principle
 
-A reliable paper-search workflow needs more than `GET /works?search=...`:
+The source and the acquisition method are separate facts.
 
-- named authors, institutions, journals, and topics must be resolved to stable IDs
-- recent and foundational papers require different ranking strategies
-- preprint, conference, and journal versions can be separate records
-- citations can be split across those versions
-- Google Scholar, Semantic Scholar, Crossref, and OpenAlex can disagree
-- a missing citation edge must be diagnosed from the citing paper's reference list
+```json
+{
+  "source": "crossref",
+  "acquisition_method": "official_api"
+}
+```
 
-This repository generalizes the earlier `openalex-citation-retrieval` work. Citing-works retrieval is one feature inside a broader paper-search skill.
+```json
+{
+  "source": "google_scholar",
+  "acquisition_method": "human_observed"
+}
+```
+
+Playwright is not treated as “manual.” Browser automation is permitted only for a public page when no supported API/feed covers the needed fact, current terms and robots policy do not prohibit automation, JavaScript is genuinely required, and no access control is bypassed.
+
+See:
+
+- [`SKILL.md`](SKILL.md)
+- [`references/source-access-policy.md`](references/source-access-policy.md)
+- [`references/source-access-policy.json`](references/source-access-policy.json)
 
 ## Features
 
-- current OpenAlex API-key and usage-budget handling
-- work search with arbitrary filters, sorting, grouping, and cursor paging
+- current OpenAlex API-key, budget, and rate-limit handling
+- work search with filters, sorting, grouping, and cursor paging
 - author, institution, source, topic, publisher, funder, and keyword search
 - lookup by DOI or OpenAlex ID
-- multi-identifier target resolution
-- incoming citations and outgoing references across every resolved version
+- multi-identifier and multi-version target resolution
+- incoming citations and outgoing references across all resolved versions
 - cross-source entity resolution and provenance merging
-- citation discrepancy audits
-- rate-limit and cost metadata capture
-- standard-library-only runtime
-- deterministic unit tests
+- citation discrepancy audits in the correct direction
+- source-access policy for API, feed, bulk, connector, web, browser, document, and human-supplied evidence
+- deterministic unit tests and CI
 
-## Source model
+## Source-access model
 
-The checked-in CLI currently automates OpenAlex. Other sources are used through explicit adapters or audit inputs rather than being silently treated as OpenAlex records:
+| Source | Preferred method | Automated fallback | Prohibited or restricted fallback |
+|---|---|---|---|
+| OpenAlex | Official REST API or snapshot | User/local import | Unauthenticated API use, limit evasion |
+| Crossref | Official REST API, polite pool | User/local import | Scraping publisher HTML for Crossref metadata |
+| arXiv | API, RSS, OAI-PMH, bulk | Document inspection | HTML scraping as primary interface; unlicensed redistribution |
+| OpenReview | API 2 or required legacy API | Narrow permitted web fetch | Access-control bypass |
+| Semantic Scholar | Official API or datasets | User/local import | Website scraping; rate-limit evasion |
+| Google Scholar | Human-observed or user-supplied | Search discovery only | Playwright, scraping, CAPTCHA bypass |
+| PubMed/NCBI | E-utilities or bulk | Document inspection | HTML scraping as API substitute |
+| Europe PMC | REST/SOAP/OAI/FTP/bulk | Document inspection | HTML scraping as API substitute |
+| GitHub | Connector or REST/GraphQL API | Narrow public page fetch | Credential exposure or limit evasion |
+| Reddit | Approved Data API with OAuth | Human-observed or user-supplied | HTML scraping or Playwright fallback |
+| Hacker News | Official Firebase API | Narrow permitted page fetch | HTML scraping as primary source |
+| Publishers, institutions, news, blogs | API/feed first, then permitted web | Permitted browser automation when required | Paywall/login/CAPTCHA bypass; broad crawling |
 
-| Source | Current handling |
-|---|---|
-| OpenAlex | Automated REST API client in `paper_search_openalex.py` |
-| Crossref | Publisher/DOI metadata validation; adapter planned |
-| arXiv | Identifier and version resolution through arXiv IDs/URLs; direct API adapter planned |
-| OpenReview | Conference/preprint identity evidence; direct API adapter planned |
-| Semantic Scholar | Independent citation-graph source; records can be imported as external JSON; direct adapter planned |
-| Google Scholar | Manual high-recall audit only; no automated scraping |
-| Publisher pages and official documents | Manual or agent web verification, especially for publication metadata and reference text |
-| PubMed, Europe PMC, ADS, INSPIRE | Domain-specific supplementation when relevant |
-| GitHub and technical blogs | Implementation, dataset, and software-status evidence; not treated as bibliographic authority |
-| Reddit and Hacker News | Anecdotal workflow/indexing evidence only |
+The detailed policy is machine-readable. It includes aliases for The Verge, Tom's Hardware, Wired, Ars Technica, TechCrunch, Engadget, CNET, ZDNet, MIT Technology Review, Gizmodo, and technical blogs. These sites are checked at execution time because their terms and robots policies can change.
 
-External citations are attached to the target paper identity. They are never assigned to a particular OpenAlex Work ID unless an actual OpenAlex citation edge proves that relationship.
+## Required provenance
+
+External evidence should record:
+
+```json
+{
+  "source": "google_scholar",
+  "acquisition_method": "human_observed",
+  "observed_at": "2026-07-27",
+  "evidence_url": "https://scholar.google.com/...",
+  "policy_checked_at": "2026-07-27",
+  "policy_basis_urls": [
+    "https://scholar.google.com/intl/us/scholar/help.html"
+  ]
+}
+```
+
+Allowed method values:
+
+- `official_api`
+- `official_bulk_download`
+- `official_feed`
+- `connector`
+- `permitted_web_fetch`
+- `permitted_browser_automation`
+- `document_inspection`
+- `user_supplied`
+- `human_observed`
+- `local_file_import`
+- `search_engine_discovery`
+
+Do not use ambiguous provenance such as `manual`, `browser`, or `scraped`.
 
 ## Current OpenAlex compatibility
 
@@ -60,7 +105,7 @@ The implementation targets the OpenAlex API documented in July 2026:
 - cursor paging for larger result sets
 - `/rate-limit` endpoint and `meta.cost_usd`
 
-Older OpenAlex examples that use no key or `per_page=200` are no longer treated as authoritative. See [`references/openalex-current-api.md`](references/openalex-current-api.md).
+See [`references/openalex-current-api.md`](references/openalex-current-api.md).
 
 ## Setup
 
@@ -83,7 +128,7 @@ The legacy `paper-search-openalex` console command remains as a compatibility al
 ### Search papers
 
 ```bash
-python3 paper_search_openalex.py search \
+paper-search search \
   "spin-flip TDDFT spin contamination" \
   --filter 'publication_year=2022-2026' \
   --sort=-publication_date \
@@ -93,27 +138,19 @@ python3 paper_search_openalex.py search \
 ### Resolve an institution
 
 ```bash
-python3 paper_search_openalex.py entity institutions "Toyohashi University of Technology"
-```
-
-Use the selected `I...` identifier:
-
-```bash
-python3 paper_search_openalex.py search "molecular machine learning" \
-  --filter 'authorships.institutions.id=I...' \
-  --limit 100
+paper-search entity institutions "Toyohashi University of Technology"
 ```
 
 ### Get one paper
 
 ```bash
-python3 paper_search_openalex.py get-work 10.1038/sdata.2014.22
+paper-search get-work 10.1038/sdata.2014.22
 ```
 
-### Find papers citing all versions of a target
+### Find papers citing all target versions
 
 ```bash
-python3 paper_search_openalex.py citing \
+paper-search citing \
   --title "Generating QM1B with PySCF IPU" \
   --author "Mathiasen, A." \
   --year 2023 \
@@ -125,31 +162,23 @@ python3 paper_search_openalex.py citing \
 ### Retrieve outgoing references
 
 ```bash
-python3 paper_search_openalex.py references \
+paper-search references \
   --doi 10.1038/sdata.2014.22 \
   --title "Quantum chemistry structures and properties of 134 kilo molecules" \
   --year 2014
 ```
 
-### Group results
-
-```bash
-python3 paper_search_openalex.py group publication_year \
-  --query "machine learning interatomic potentials" \
-  --filter 'publication_year=2020-2026'
-```
-
 ### Audit citation discrepancies
 
 ```bash
-python3 paper_search_openalex.py audit-citations \
+paper-search audit-citations \
   --target-json examples/target-paper.json \
   --external-json examples/external-citations.json
 ```
 
-## Citation retrieval model
+## Citation model
 
-The target is an identity set, not one DOI:
+The target is an identity set rather than one DOI:
 
 ```text
 DOIs + arXiv IDs + OpenReview IDs + URLs + title/authors/year
@@ -161,7 +190,7 @@ DOIs + arXiv IDs + OpenReview IDs + URLs + title/authors/year
        cross-version and cross-source entity resolution + provenance
 ```
 
-Externally observed citations are attached to the target identity, not fabricated OpenAlex Work edges. Only an actual OpenAlex `cites:` result can populate `cites_target_work_ids`.
+An externally observed citation is attached to the target identity. It is not assigned to a particular OpenAlex Work ID unless an actual OpenAlex citation edge proves that relationship.
 
 ## Project layout
 
@@ -172,12 +201,15 @@ Externally observed citations are attached to the target identity, not fabricate
 ├── references/
 │   ├── openalex-current-api.md
 │   ├── query-recipes.md
-│   └── citation-audit.md
+│   ├── citation-audit.md
+│   ├── source-access-policy.md
+│   └── source-access-policy.json
 ├── examples/
 │   ├── target-paper.json
 │   └── external-citations.json
 ├── tests/
-│   └── test_paper_search_openalex.py
+│   ├── test_paper_search_openalex.py
+│   └── test_source_access_policy.py
 ├── pyproject.toml
 └── .github/workflows/tests.yml
 ```
@@ -189,11 +221,7 @@ python3 -m unittest discover -s tests -v
 python3 -m py_compile paper_search_openalex.py
 ```
 
-The test suite covers identifier normalization, cross-source deduplication, current page limits, cursor pagination, target-version resolution, provenance merging, and correct-direction citation auditing.
-
-## Source strategy
-
-OpenAlex is a structured scholarly index, not a universal truth source. For consequential or disputed results, compare with publisher metadata, Crossref, arXiv/OpenReview, domain indexes, Semantic Scholar, and manual source-document inspection. Google Scholar can be useful for high-recall audits, but its version clustering and citation counts can change and it does not provide an official bulk API.
+The policy tests verify that every source has an access class, preferred methods, authority records where applicable, and explicit restrictions for high-risk sources such as Google Scholar and Reddit.
 
 ## License
 
