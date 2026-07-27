@@ -2,8 +2,14 @@
   {
     "title": "Molecular quantum chemical data sets and databases for machine learning potentials",
     "doi": "10.1088/2632-2153/ad8f13",
-    "source": "google_scholar_manual",
+    "source": "google_scholar",
+    "acquisition_method": "human_observed",
+    "observed_at": "2026-07-27",
     "source_reference_verified": false,
-    "evidence_url": ""
+    "evidence_url": "",
+    "policy_checked_at": "2026-07-27",
+    "policy_basis_urls": [
+      "https://scholar.google.com/intl/us/scholar/help.html"
+    ]
   }
 ]
