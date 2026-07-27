@@ -1,6 +1,6 @@
-# paper-search-openalex
+# paper-search
 
-A general-purpose OpenAlex skill and zero-runtime-dependency Python toolkit for scholarly discovery, entity resolution, citation retrieval, and citation-graph auditing.
+A general-purpose scholarly search and citation-audit skill. OpenAlex is the primary structured index, while publisher metadata and complementary scholarly sources are used for identity resolution, coverage checks, and evidence-backed citation audits.
 
 ## Why this repository exists
 
@@ -13,11 +13,11 @@ A reliable paper-search workflow needs more than `GET /works?search=...`:
 - Google Scholar, Semantic Scholar, Crossref, and OpenAlex can disagree
 - a missing citation edge must be diagnosed from the citing paper's reference list
 
-This repository generalizes the earlier `openalex-citation-retrieval` work. Citing-works retrieval is one feature inside a broader OpenAlex paper-search skill.
+This repository generalizes the earlier `openalex-citation-retrieval` work. Citing-works retrieval is one feature inside a broader paper-search skill.
 
 ## Features
 
-- current API-key and usage-budget handling
+- current OpenAlex API-key and usage-budget handling
 - work search with arbitrary filters, sorting, grouping, and cursor paging
 - author, institution, source, topic, publisher, funder, and keyword search
 - lookup by DOI or OpenAlex ID
@@ -27,7 +27,26 @@ This repository generalizes the earlier `openalex-citation-retrieval` work. Citi
 - citation discrepancy audits
 - rate-limit and cost metadata capture
 - standard-library-only runtime
-- 18 deterministic unit tests
+- deterministic unit tests
+
+## Source model
+
+The checked-in CLI currently automates OpenAlex. Other sources are used through explicit adapters or audit inputs rather than being silently treated as OpenAlex records:
+
+| Source | Current handling |
+|---|---|
+| OpenAlex | Automated REST API client in `paper_search_openalex.py` |
+| Crossref | Publisher/DOI metadata validation; adapter planned |
+| arXiv | Identifier and version resolution through arXiv IDs/URLs; direct API adapter planned |
+| OpenReview | Conference/preprint identity evidence; direct API adapter planned |
+| Semantic Scholar | Independent citation-graph source; records can be imported as external JSON; direct adapter planned |
+| Google Scholar | Manual high-recall audit only; no automated scraping |
+| Publisher pages and official documents | Manual or agent web verification, especially for publication metadata and reference text |
+| PubMed, Europe PMC, ADS, INSPIRE | Domain-specific supplementation when relevant |
+| GitHub and technical blogs | Implementation, dataset, and software-status evidence; not treated as bibliographic authority |
+| Reddit and Hacker News | Anecdotal workflow/indexing evidence only |
+
+External citations are attached to the target paper identity. They are never assigned to a particular OpenAlex Work ID unless an actual OpenAlex citation edge proves that relationship.
 
 ## Current OpenAlex compatibility
 
@@ -41,7 +60,7 @@ The implementation targets the OpenAlex API documented in July 2026:
 - cursor paging for larger result sets
 - `/rate-limit` endpoint and `meta.cost_usd`
 
-Older OpenAlex examples that use no key or `per-page=200` are no longer treated as authoritative. See [`references/openalex-current-api.md`](references/openalex-current-api.md).
+Older OpenAlex examples that use no key or `per_page=200` are no longer treated as authoritative. See [`references/openalex-current-api.md`](references/openalex-current-api.md).
 
 ## Setup
 
@@ -54,8 +73,10 @@ Optional editable installation:
 
 ```bash
 python3 -m pip install -e .
-paper-search-openalex rate-limit
+paper-search rate-limit
 ```
+
+The legacy `paper-search-openalex` console command remains as a compatibility alias.
 
 ## Examples
 
