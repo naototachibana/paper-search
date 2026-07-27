@@ -1,0 +1,267 @@
+{
+  "schema_version": "1.0",
+  "last_reviewed": "2026-07-27",
+  "purpose": "Choose a source-approved acquisition method before retrieving scholarly or supporting evidence.",
+  "method_definitions": {
+    "official_api": "Use the source's documented programmatic API with required authentication, identification, attribution, rate limits, caching, and backoff.",
+    "official_bulk_download": "Use a source-provided snapshot, FTP, OAI-PMH, dataset export, or other documented bulk interface.",
+    "official_feed": "Use an official RSS, Atom, JSON Feed, or newsletter archive intended for syndication.",
+    "connector": "Use an installed first-party or authorized connector that calls the source's supported API.",
+    "permitted_web_fetch": "Fetch a small number of public pages only after the source's terms and robots policy have been checked and do not prohibit the intended automated access.",
+    "permitted_browser_automation": "Use Playwright or another browser only for a public page that requires browser rendering, after the source's terms and robots policy have been checked and do not prohibit automation.",
+    "document_inspection": "Inspect a lawfully accessible or user-provided PDF/HTML document. Respect the document's license and do not bypass access controls.",
+    "user_supplied": "Use content or identifiers explicitly supplied by the user.",
+    "human_observed": "Use facts a human explicitly observed in an interactive browser session and recorded for the agent.",
+    "local_file_import": "Import a file already lawfully present in the workspace.",
+    "search_engine_discovery": "Use a search engine to discover candidate URLs or snippets; verify substantive claims against the original source when accessible."
+  },
+  "global_rules": [
+    "Prefer an official API, bulk interface, or official feed over HTML access.",
+    "Do not downgrade to scraping merely because API credentials, approval, or quota are unavailable.",
+    "Before permitted_web_fetch or permitted_browser_automation, check the current terms and robots.txt for the exact host and record the check date and policy URLs.",
+    "Browser automation is not a synonym for manual inspection and is never the default fallback.",
+    "Do not bypass login, paywall, CAPTCHA, rate limit, robots exclusion, geographic restriction, or other technical access control.",
+    "Do not mask identity, rotate IP addresses, or distribute requests to evade limits.",
+    "Use the minimum number of requests, cache results, identify the client when requested, honor Retry-After, and apply exponential backoff.",
+    "Keep the information source separate from the acquisition method in provenance.",
+    "If the policy is unclear or conflicting, use user_supplied or human_observed evidence, or omit the source.",
+    "Recheck policy before high-volume, recurring, commercial, or redistributed use."
+  ],
+  "required_provenance_fields": [
+    "source",
+    "acquisition_method",
+    "observed_at",
+    "evidence_url",
+    "policy_checked_at",
+    "policy_basis_urls"
+  ],
+  "sources": {
+    "openalex": {
+      "aliases": ["openalex.org", "api.openalex.org"],
+      "access_class": "allowed_automated",
+      "preferred_methods": ["official_api", "official_bulk_download"],
+      "fallback_methods": ["user_supplied", "local_file_import"],
+      "prohibited_methods": ["html_scraping_as_api_substitute", "rate_limit_evasion"],
+      "conditions": [
+        "Use an API key.",
+        "Use per_page up to 100 and cursor pagination for deep result sets.",
+        "Monitor meta.cost_usd and rate-limit headers; honor 429 and transient errors."
+      ],
+      "authority_urls": [
+        "https://developers.openalex.org/api-reference/authentication",
+        "https://developers.openalex.org/api-reference/errors"
+      ]
+    },
+    "crossref": {
+      "aliases": ["crossref.org", "api.crossref.org"],
+      "access_class": "allowed_automated",
+      "preferred_methods": ["official_api", "official_bulk_download"],
+      "fallback_methods": ["user_supplied", "local_file_import"],
+      "prohibited_methods": ["publisher_site_scraping_for_crossref_metadata", "rate_limit_evasion"],
+      "conditions": [
+        "Use the polite pool by sending a valid mailto parameter and identifying User-Agent when possible.",
+        "Cache responses, observe rate and concurrency headers, and back off on 429/403."
+      ],
+      "authority_urls": [
+        "https://www.crossref.org/documentation/retrieve-metadata/rest-api/access-and-authentication/",
+        "https://github.com/CrossRef/rest-api-doc"
+      ]
+    },
+    "arxiv": {
+      "aliases": ["arxiv.org", "export.arxiv.org"],
+      "access_class": "allowed_automated",
+      "preferred_methods": ["official_api", "official_feed", "official_bulk_download"],
+      "fallback_methods": ["document_inspection", "user_supplied", "local_file_import"],
+      "prohibited_methods": ["html_scraping_as_primary_interface", "rate_limit_evasion", "redistribute_full_text_without_license"],
+      "conditions": [
+        "For legacy API, RSS, and OAI-PMH, use at most one request every three seconds and one connection at a time.",
+        "Cache repeated queries; use OAI-PMH or bulk access for large harvesting.",
+        "Metadata may be reused under CC0; full text remains subject to each submission's license."
+      ],
+      "authority_urls": [
+        "https://info.arxiv.org/help/api/tou.html",
+        "https://info.arxiv.org/help/api/user-manual.html"
+      ]
+    },
+    "openreview": {
+      "aliases": ["openreview.net", "api.openreview.net", "api2.openreview.net"],
+      "access_class": "allowed_automated",
+      "preferred_methods": ["official_api"],
+      "fallback_methods": ["permitted_web_fetch", "document_inspection", "user_supplied"],
+      "prohibited_methods": ["access_control_bypass", "credential_sharing", "undocumented_bulk_scraping"],
+      "conditions": [
+        "Use API 2 by default and legacy API v1 only for venues that still require it.",
+        "Respect readers, nonreaders, writers, authentication, and venue access controls.",
+        "Use public metadata only unless the authenticated user is authorized."
+      ],
+      "authority_urls": [
+        "https://docs.openreview.net/getting-started/using-the-api",
+        "https://openreview.net/legal/terms"
+      ]
+    },
+    "semantic_scholar": {
+      "aliases": ["semanticscholar.org", "api.semanticscholar.org"],
+      "access_class": "allowed_automated_conditional",
+      "preferred_methods": ["official_api", "official_bulk_download"],
+      "fallback_methods": ["user_supplied", "local_file_import"],
+      "prohibited_methods": ["website_scraping", "rate_limit_evasion", "fabricated_openalex_ids"],
+      "conditions": [
+        "Accept and comply with the current API or dataset license before use.",
+        "Use an API key where available, batch endpoints for large jobs, and do not exceed rate limits.",
+        "Provide required Semantic Scholar attribution for public outputs.",
+        "Confirm that the intended commercial, research, educational, redistribution, and retention use is permitted by the applicable license."
+      ],
+      "authority_urls": [
+        "https://www.semanticscholar.org/product/api",
+        "https://www.semanticscholar.org/product/api/license",
+        "https://api.semanticscholar.org/api-docs"
+      ]
+    },
+    "google_scholar": {
+      "aliases": ["scholar.google.com"],
+      "access_class": "human_only",
+      "preferred_methods": ["human_observed", "user_supplied"],
+      "fallback_methods": ["search_engine_discovery"],
+      "prohibited_methods": ["official_api_claim", "web_scraping", "browser_automation", "captcha_bypass"],
+      "conditions": [
+        "There is no official public bulk API for this workflow.",
+        "Respect Google Scholar robots.txt when automated software is involved.",
+        "Record observation date because citation counts and version clusters are mutable.",
+        "Use Scholar only as a high-recall audit lead and verify records against original sources."
+      ],
+      "authority_urls": ["https://scholar.google.com/intl/us/scholar/help.html"]
+    },
+    "pubmed_ncbi": {
+      "aliases": ["pubmed", "ncbi", "eutils.ncbi.nlm.nih.gov"],
+      "access_class": "allowed_automated",
+      "preferred_methods": ["official_api", "official_bulk_download"],
+      "fallback_methods": ["document_inspection", "user_supplied"],
+      "prohibited_methods": ["html_scraping_as_api_substitute", "rate_limit_evasion"],
+      "conditions": [
+        "Use NCBI E-utilities URLs and include tool and email parameters.",
+        "Without an API key, stay at or below 3 requests per second; with a key, default limit is 10 requests per second.",
+        "Schedule very large jobs according to NCBI guidance or use bulk resources."
+      ],
+      "authority_urls": [
+        "https://www.ncbi.nlm.nih.gov/sites/books/NBK25497/",
+        "https://www.ncbi.nlm.nih.gov/books/NBK25499/"
+      ]
+    },
+    "europe_pmc": {
+      "aliases": ["europepmc.org", "www.ebi.ac.uk/europepmc"],
+      "access_class": "allowed_automated",
+      "preferred_methods": ["official_api", "official_bulk_download"],
+      "fallback_methods": ["document_inspection", "user_supplied"],
+      "prohibited_methods": ["html_scraping_as_api_substitute", "redistribute_full_text_without_license"],
+      "conditions": [
+        "Use REST, SOAP, OAI, FTP, or documented bulk services.",
+        "Check each article's license before reusing or redistributing full text, figures, or supplements."
+      ],
+      "authority_urls": [
+        "https://europepmc.org/RestfulWebService",
+        "https://europepmc.org/developers",
+        "https://europepmc.org/Copyright"
+      ]
+    },
+    "github": {
+      "aliases": ["github.com", "api.github.com"],
+      "access_class": "allowed_automated",
+      "preferred_methods": ["connector", "official_api"],
+      "fallback_methods": ["permitted_web_fetch", "user_supplied", "local_file_import"],
+      "prohibited_methods": ["credential_exposure", "rate_limit_evasion", "login_or_access_control_bypass"],
+      "conditions": [
+        "Prefer the installed GitHub connector or authenticated REST/GraphQL API.",
+        "Honor primary and secondary rate limits, Retry-After, and reset headers.",
+        "Use public page fetch only for a small number of human-readable pages when API coverage is insufficient."
+      ],
+      "authority_urls": ["https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api"]
+    },
+    "reddit": {
+      "aliases": ["reddit.com", "www.reddit.com", "oauth.reddit.com"],
+      "access_class": "allowed_automated_conditional",
+      "preferred_methods": ["official_api"],
+      "fallback_methods": ["human_observed", "user_supplied"],
+      "prohibited_methods": ["web_scraping", "browser_automation", "oauth_identity_masking", "rate_limit_evasion", "unapproved_data_retention"],
+      "conditions": [
+        "Use the Reddit Data API only with required registration, OAuth identity, approved use case, attribution, and retention/deletion compliance.",
+        "Do not treat absent API approval or credentials as permission to scrape.",
+        "For isolated anecdotal evidence without approved API access, accept user-supplied or human-observed permalinks and verify only what is necessary."
+      ],
+      "authority_urls": ["https://redditinc.com/policies/data-api-terms"]
+    },
+    "hacker_news": {
+      "aliases": ["news.ycombinator.com", "hacker-news.firebaseio.com"],
+      "access_class": "allowed_automated",
+      "preferred_methods": ["official_api"],
+      "fallback_methods": ["permitted_web_fetch", "human_observed", "user_supplied"],
+      "prohibited_methods": ["html_scraping_as_primary_interface"],
+      "conditions": [
+        "Use the official read-only Firebase API for stories, comments, users, and rankings.",
+        "Cache item responses and avoid unnecessary recursive traversal even though the official documentation currently states no rate limit."
+      ],
+      "authority_urls": [
+        "https://github.com/HackerNews/API",
+        "https://www.ycombinator.com/blog/hacker-news-api"
+      ]
+    },
+    "publisher_pages": {
+      "aliases": ["journal publisher", "conference publisher", "official landing page"],
+      "access_class": "conditional_web",
+      "preferred_methods": ["official_api", "official_feed", "permitted_web_fetch", "document_inspection"],
+      "fallback_methods": ["user_supplied", "human_observed"],
+      "prohibited_methods": ["paywall_bypass", "login_bypass", "captcha_bypass", "bulk_crawling_without_permission"],
+      "conditions": [
+        "Prefer Crossref, publisher metadata APIs, citation export, RSS/Atom, or an open-access repository.",
+        "For a public page, check current terms and robots.txt before automated fetch.",
+        "Use browser automation only when the same public page requires JavaScript and automation is not prohibited.",
+        "Inspect only lawfully accessible PDFs or user-provided documents and respect their licenses."
+      ],
+      "authority_urls": []
+    },
+    "official_research_institutions": {
+      "aliases": ["university site", "government site", "research institute", "official documentation"],
+      "access_class": "conditional_web",
+      "preferred_methods": ["official_api", "official_feed", "permitted_web_fetch", "document_inspection"],
+      "fallback_methods": ["user_supplied", "human_observed"],
+      "prohibited_methods": ["access_control_bypass", "bulk_crawling_without_permission"],
+      "conditions": [
+        "Prefer official APIs, data portals, RSS/Atom, sitemaps, and downloadable reports.",
+        "Check current terms and robots.txt before automated web or browser access.",
+        "Use browser automation only for public client-rendered pages where it is not prohibited."
+      ],
+      "authority_urls": []
+    },
+    "news_and_technical_media": {
+      "aliases": [
+        "theverge.com", "tomshardware.com", "wired.com", "arstechnica.com", "techcrunch.com",
+        "engadget.com", "cnet.com", "zdnet.com", "technologyreview.com", "gizmodo.com",
+        "technical blog", "engineering blog", "company blog"
+      ],
+      "access_class": "conditional_web",
+      "preferred_methods": ["official_feed", "permitted_web_fetch", "search_engine_discovery"],
+      "fallback_methods": ["human_observed", "user_supplied"],
+      "prohibited_methods": ["paywall_bypass", "login_bypass", "captcha_bypass", "bulk_crawling_without_permission"],
+      "conditions": [
+        "Prefer an official RSS/Atom/JSON feed, press-room feed, or documented API when available.",
+        "Before fetching an article page, check the current terms and robots.txt for the exact host.",
+        "Use Playwright only if the public article requires JavaScript and automation is not prohibited; do not use it merely to imitate a human.",
+        "Do not retrieve paywalled text through alternate endpoints or reader-mode bypasses.",
+        "Use these sources for reporting and implementation context; verify scientific claims against papers or official documents."
+      ],
+      "authority_urls": []
+    },
+    "generic_public_web": {
+      "aliases": ["other public website"],
+      "access_class": "conditional_web",
+      "preferred_methods": ["official_api", "official_feed", "permitted_web_fetch"],
+      "fallback_methods": ["human_observed", "user_supplied", "search_engine_discovery"],
+      "prohibited_methods": ["access_control_bypass", "captcha_bypass", "rate_limit_evasion", "bulk_crawling_without_permission"],
+      "conditions": [
+        "Check official terms, robots.txt, authentication requirements, and available APIs or feeds before automated access.",
+        "Use the least invasive method and the minimum number of requests.",
+        "If permission is unclear, do not automate; use user-supplied or human-observed evidence."
+      ],
+      "authority_urls": []
+    }
+  }
+}
